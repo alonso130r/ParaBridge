@@ -156,7 +156,7 @@ def main():
     ).to(device)
 
     # Set up optimizer and loss function.
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
+    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),
                            lr=config.get("learning_rate", 1e-4))
     cosine_loss = nn.CosineEmbeddingLoss()
 
