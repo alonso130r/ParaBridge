@@ -1,0 +1,19 @@
+{
+  "wandb_project": "LangBridgeWithLSTM",
+  "encoder_variant": "AMS",
+  "decoder_model_name_or_path": "EleutherAI/llemma_7b",
+  "custom_datasets": true,
+  "fine_tune_encoder": true,
+  "lstm_num_layers": 1,
+  "max_sentence_length": 32,
+  "prompt_length": 10,
+  "train_batch_size": 8,
+  "eval_batch_size": 8,
+  "learning_rate": 0.0001,
+  "num_epochs": 3,
+  "checkpoint_dir": "checkpoints",
+  "eval_output_path": "final_eval_metrics.json",
+
+  "aggregator_type": "max_pool",
+  "alignment_type": "LinearWithAddedEos"
+}

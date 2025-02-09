@@ -18,7 +18,7 @@ from lm_eval.models.model import Model
 from datasets import load_dataset
 
 # Use the new modular alignment model
-from pool.model import LangBridgeModular
+from model import LangBridgeModular
 
 
 ###############################################

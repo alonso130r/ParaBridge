@@ -12,7 +12,7 @@ from peft import PeftModel
 from datasets import load_dataset, concatenate_datasets
 
 # Use the new modular alignment model
-from pool.model import LangBridgeModular
+from .model import LangBridgeModular
 
 
 ###############################################
