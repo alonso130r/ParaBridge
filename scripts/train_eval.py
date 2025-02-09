@@ -72,8 +72,11 @@ def main():
     decoder_name = config["decoder_model_name_or_path"].lower()
     train_datasets = []
     eval_datasets = []
+    if config.get(custom_datasets):
+        train_datasets.append(load_dataset("DKYoon/proofpile2-200k", split="train"))
+        eval_datasets.append(load_dataset("juletxara/mgsm", split="train"))
 
-    if "metamath" in decoder_name or "llemma" in decoder_name:
+    elif "metamath" in decoder_name or "llemma" in decoder_name:
         # Math reasoning: combine multiple datasets.
         train_datasets.append(load_dataset(config.get("metamath_train_dataset", "kaist-ai/metamathqa"), split="train"))
         train_datasets.append(load_dataset("juletxara/mgsm", split="train"))
