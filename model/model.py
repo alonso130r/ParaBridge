@@ -59,12 +59,15 @@ class DynamicRotaryAggregator(nn.Module):
         x_rot = sentence_embeddings[:, :self.rotary_dim]  # [N, rotary_dim]
         x_rest = sentence_embeddings[:, self.rotary_dim:]  # [N, hidden_size - rotary_dim]
         
-        # For a simple rotary transformation, we assume that the rotary part is treated elementwise.
-        # (A more standard RoPE would pair dimensions; here we simply do elementwise rotation.)
-        # The rotated feature = x * cos(theta) + (x shifted)* sin(theta).
-        # For simplicity, we apply: rotated = x_rot * cos_vals + x_rot * sin_vals.
-        # (In practice, you may want to pair dimensions properly. Here we use an elementwise combination.)
-        x_rotated = x_rot * cos_vals + x_rot * sin_vals
+        # (A standard RoPE approach that pairs dimensions.)
+        half_dim = self.rotary_dim // 2
+        x_even = x_rot[:, 0::2]
+        x_odd = x_rot[:, 1::2]
+        cos_even = cos_vals[:, :half_dim]
+        sin_even = sin_vals[:, :half_dim]
+        rot_even = x_even * cos_even - x_odd * sin_even
+        rot_odd = x_odd * cos_even + x_even * sin_even
+        x_rotated = torch.stack([rot_even, rot_odd], dim=-1).reshape(N, self.rotary_dim)
         
         # Reassemble the full embedding.
         rotated_embeddings = torch.cat([x_rotated, x_rest], dim=1)  # [N, hidden_size]
