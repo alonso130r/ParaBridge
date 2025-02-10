@@ -170,7 +170,7 @@ class PerceiverResampler(BaseAlignmentModule):
     """
     def __init__(self, input_dim, output_dim, prompt_length, use_eos=True, num_latents=16):
         super().__init__(input_dim, output_dim, prompt_length, use_eos)
-        self.num_latents = num_latents 
+        self.num_latents = num_latents
         self.latent_queries = nn.Parameter(torch.randn(num_latents, input_dim))
         self.attn = nn.MultiheadAttention(embed_dim=input_dim, num_heads=1, batch_first=True)
         self.output_projection = nn.Linear(input_dim, prompt_length * output_dim)
@@ -192,9 +192,9 @@ class PerceiverResampler(BaseAlignmentModule):
 
 def build_alignment_module(module_type, input_dim, output_dim, prompt_length, use_eos=True):
     module_type = module_type.lower()
-    if module_type == "linearwitheddeos":
+    if module_type == "linearwithaddedeos":
         return LinearWithAddedEos(input_dim, output_dim, prompt_length, use_eos)
-    elif module_type == "ffnwithaddedos":
+    elif module_type == "ffnwithaddedeos":
         return FFNWithAddedEos(input_dim, output_dim, prompt_length, use_eos)
     elif module_type == "perceiverresampler":
         return PerceiverResampler(input_dim, output_dim, prompt_length, use_eos)

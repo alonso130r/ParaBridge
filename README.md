@@ -7,5 +7,7 @@ An enhancement on LangBridge meant to properly handle paragraph-sized questions 
 ```
 pip install -r requirements.txt
 
+export HF_HOME="/workspace/HF_HOME/"
+
 python scripts/train_eval.py --config ./config.json
 ```

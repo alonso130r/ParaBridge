@@ -3,3 +3,5 @@ transformers
 peft 
 datasets 
 wandb
+nltk
+sentencepiece

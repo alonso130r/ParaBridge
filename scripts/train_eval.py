@@ -12,7 +12,7 @@ from peft import PeftModel
 from datasets import load_dataset, concatenate_datasets
 
 # Use the new modular alignment model
-from .model import LangBridgeModular
+from model import LangBridgeModular
 
 
 ###############################################
@@ -20,10 +20,12 @@ from .model import LangBridgeModular
 # Expects each sample to have "text1" and "text2" keys.
 ###############################################
 def collate_fn(batch):
+    print("Batch Sample:", batch[:2])  # Print the first few samples
     return {
         'text1': [sample['text1'] for sample in batch],
         'text2': [sample['text2'] for sample in batch]
     }
+
 
 
 ###############################################
@@ -49,7 +51,7 @@ def main():
     # 1. Load the encoder model and apply PEFT.
     ###############################################
     encoder_variant = config.get("encoder_variant", "AMS")
-    loadpath = f"../trained_models/mST5-{encoder_variant}-final-true"
+    loadpath = f"../trained_models/mST5-{encoder_variant}-final-true/checkpoint_step_8440"
     encoder_model = MT5EncoderModel.from_pretrained(
         "../mST5-saved-2",
         torch_dtype=torch.bfloat16,
@@ -72,9 +74,11 @@ def main():
     decoder_name = config["decoder_model_name_or_path"].lower()
     train_datasets = []
     eval_datasets = []
-    if config.get(custom_datasets):
+    if config.get("custom_datasets"):
         train_datasets.append(load_dataset("DKYoon/proofpile2-200k", split="train"))
-        eval_datasets.append(load_dataset("juletxara/mgsm", split="train"))
+        configs = ['bn', 'de', 'en', 'es', 'fr', 'ja']  # List of available configs # 'ru', 'sw', 'te', 'th', 'zh'
+        eval_datasets = [load_dataset("juletxara/mgsm", config, split="train") for config in configs]
+        task = "math_reasoning"
 
     elif "metamath" in decoder_name or "llemma" in decoder_name:
         # Math reasoning: combine multiple datasets.
@@ -152,7 +156,7 @@ def main():
         decoder_model=decoder_model,
         tokenizer=tokenizer,
         aggregator_type=config.get("aggregator_type", "max_pool"),
-        alignment_type=config.get("alignment_type", "LinearWithAddedEos"),
+        alignment_type=config.get("alignment_type", "ffnwithaddedeos"),
         fine_tune_encoder=config.get("fine_tune_encoder", True),
         max_sentence_length=config.get("max_sentence_length", 32),
         prompt_length=config.get("prompt_length", 10)
