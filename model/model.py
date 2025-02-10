@@ -90,7 +90,7 @@ class MaxPoolAggregator(nn.Module):
 
     def forward(self, sentence_embeddings_list, num_sentences, encoder_hidden_size):
         padded_embeddings = pad_sequence(sentence_embeddings_list, batch_first=True)
-        batch_size, _, _ = padded_embeddings.shape
+        batch_size, _ = padded_embeddings.shape
         aggregated = []
         for i in range(batch_size):
             valid_outputs = padded_embeddings[i, :num_sentences[i], :]
@@ -317,7 +317,7 @@ class LangBridgeModular(nn.Module):
             # For each paragraph, the aggregator returns a single vector of shape [hidden_size].
             paragraph_embeddings = []
             for emb in sentence_embeddings_list:
-                paragraph_embeddings.append(self.aggregator(emb))
+                paragraph_embeddings.append(self.aggregator(emb, num_sentences, self.encoder_hidden_size))
             paragraph_embeddings = torch.stack(paragraph_embeddings, dim=0)  # [batch_size, hidden_size]
         else:
             # When paragraph mode is off: tokenize full paragraphs.

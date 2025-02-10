@@ -10,7 +10,7 @@ import wandb
 from transformers import AutoModel, AutoTokenizer, MT5EncoderModel
 from peft import PeftModel
 from datasets import load_dataset, concatenate_datasets
-
+import nltk
 # Use the new modular alignment model
 from model import LangBridgeModular
 
@@ -23,8 +23,8 @@ def collate_fn(batch):
     batch_fist = batch[4:] # Adjust this to work with custom batch size
     batch_second = batch[:4]
     return {
-        'text1': [sample['text1'] for sample in batch],
-        'text2': [sample['text2'] for sample in batch]
+        'text1': [sample['input'] for sample in batch_fist],
+        'text2': [sample['input'] for sample in batch_second]
     }
 
 
@@ -42,6 +42,10 @@ def main():
     with open(args.config, 'r') as f:
         config = json.load(f)
 
+
+    
+    nltk.download('punkt_tab')
+    
     # Initialize WandB logging.
     wandb.init(project=config.get("wandb_project", "LangBridgeModular"), config=config)
 
