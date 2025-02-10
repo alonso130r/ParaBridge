@@ -20,7 +20,8 @@ from model import LangBridgeModular
 # Expects each sample to have "text1" and "text2" keys.
 ###############################################
 def collate_fn(batch):
-    print("Batch Sample:", batch[:2])  # Print the first few samples
+    batch_fist = batch[4:] # Adjust this to work with custom batch size
+    batch_second = batch[:4]
     return {
         'text1': [sample['text1'] for sample in batch],
         'text2': [sample['text2'] for sample in batch]
