@@ -7,13 +7,13 @@
   "lstm_num_layers": 1,
   "max_sentence_length": 32,
   "prompt_length": 10,
-  "train_batch_size": 8,
-  "eval_batch_size": 8,
+  "train_batch_size": 128,
+  "eval_batch_size": 128,
   "learning_rate": 0.0001,
   "num_epochs": 3,
   "checkpoint_dir": "checkpoints",
   "eval_output_path": "final_eval_metrics.json",
-  "use_paragraph_mode": true,
+  "use_paragraph_mode": false,
   "aggregator_type": "max_pool",
   "alignment_type": "LinearWithAddedEos"
 }

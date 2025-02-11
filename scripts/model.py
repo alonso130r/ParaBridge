@@ -126,7 +126,7 @@ class LinearWithAddedEos(BaseAlignmentModule):
     """
     def __init__(self, input_dim, output_dim, prompt_length, use_eos=True):
         super().__init__(input_dim, output_dim, prompt_length, use_eos)
-        self.projection = nn.Linear(input_dim, prompt_length * output_dim)
+        self.projection = nn.Linear(input_dim, prompt_length * output_dim).to(torch.bfloat16)
         if use_eos:
             self.eos_token = nn.Parameter(torch.randn(output_dim))
 
@@ -316,9 +316,7 @@ class LangBridgeModular(nn.Module):
             # 5. Use the aggregator (dynamic rotary or max-pool) to combine sentence embeddings.
             # For each paragraph, the aggregator returns a single vector of shape [hidden_size].
             paragraph_embeddings = []
-            for emb in sentence_embeddings_list:
-                paragraph_embeddings.append(self.aggregator(emb, num_sentences, self.encoder_hidden_size))
-            paragraph_embeddings = torch.stack(paragraph_embeddings, dim=0)  # [batch_size, hidden_size]
+            paragraph_embeddings = self.aggregator(sentence_embeddings_list, num_sentences, self.encoder_hidden_size)
         else:
             # When paragraph mode is off: tokenize full paragraphs.
             encoded = self.tokenizer(
@@ -338,6 +336,7 @@ class LangBridgeModular(nn.Module):
             paragraph_embeddings = sum_embeddings / lengths  # [batch_size, hidden_size]
 
         # 6. Align the aggregated paragraph embeddings to produce the soft prompt.
+        paragraph_embeddings = paragraph_embeddings.to(torch.bfloat16)
         soft_prompt = self.aligner(paragraph_embeddings)
         # 7. Feed the soft prompt to the decoder.
         decoder_outputs = self.decoder(inputs_embeds=soft_prompt, **decoder_kwargs)

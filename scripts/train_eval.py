@@ -11,6 +11,7 @@ from transformers import AutoModel, AutoTokenizer, MT5EncoderModel
 from peft import PeftModel
 from datasets import load_dataset, concatenate_datasets
 import nltk
+from tqdm import tqdm
 # Use the new modular alignment model
 from model import LangBridgeModular
 
@@ -20,11 +21,13 @@ from model import LangBridgeModular
 # Expects each sample to have "text1" and "text2" keys.
 ###############################################
 def collate_fn(batch):
-    batch_fist = batch[4:] # Adjust this to work with custom batch size
-    batch_second = batch[:4]
+    # Ensure the batch size is even.
+    if len(batch) % 2 != 0:
+        raise ValueError("Batch size must be even.")
+    half = len(batch) // 2
     return {
-        'text1': [sample['input'] for sample in batch_fist],
-        'text2': [sample['input'] for sample in batch_second]
+        'text1': [sample['input'] for sample in batch[half:]],
+        'text2': [sample['input'] for sample in batch[:half]]
     }
 
 
@@ -70,7 +73,7 @@ def main():
     ###############################################
     # 2. Load the decoder model.
     ###############################################
-    decoder_model = AutoModel.from_pretrained(config["decoder_model_name_or_path"]).to(device)
+    decoder_model = AutoModel.from_pretrained(config["decoder_model_name_or_path"], torch_dtype=torch.bfloat16).to(device)
 
     ###############################################
     # 3. Select and combine datasets based on the decoder model.
@@ -167,13 +170,13 @@ def main():
         encoder_model=encoder_model,
         decoder_model=decoder_model,
         tokenizer=tokenizer,
-        use_paragraph_mode=config.get("use_paragraph_mode", True),  # Added
+        use_paragraph_mode=config.get("use_paragraph_mode", False),  # Added
         aggregator_type=config.get("aggregator_type", "max_pool"),
         alignment_type=config.get("alignment_type", "LinearWithAddedEos"),
         fine_tune_encoder=config.get("fine_tune_encoder", True),
         max_sentence_length=config.get("max_sentence_length", 32),
         prompt_length=config.get("prompt_length", 10)
-    ).to(device)
+    ).to(torch.bfloat16).to(device)
 
     # Set up optimizer and loss function.
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),
@@ -193,7 +196,7 @@ def main():
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
-        for batch in train_loader:
+        for batch in tqdm(train_loader):
             optimizer.zero_grad()
             # Process each pair of texts.
             outputs1, soft_prompt1 = model(batch['text1'])
