@@ -79,49 +79,56 @@ def main():
     decoder_name = config["decoder_model_name_or_path"].lower()
     train_datasets = []
     eval_datasets = []
-    if config.get("custom_datasets"):
-        train_datasets.append(load_dataset("DKYoon/proofpile2-200k", split="train"))
-        configs = ['bn', 'de', 'en', 'es', 'fr', 'ja']  # List of available configs # 'ru', 'sw', 'te', 'th', 'zh'
-        eval_datasets = [load_dataset("juletxara/mgsm", config, split="train") for config in configs]
-        task = "math_reasoning"
 
-    elif "metamath" in decoder_name or "llemma" in decoder_name:
-        # Math reasoning: combine multiple datasets.
-        train_datasets.append(load_dataset(config.get("metamath_train_dataset", "kaist-ai/metamathqa"), split="train"))
+    if "llemma" in decoder_name:
+        # Llemma (Mathematical Reasoning)
+        # Training on Proof-Pile-2 and evaluating on MGSM in multiple languages.
+        train_datasets.append(load_dataset("DKYoon/proofpile2-200k", split="train"))
+        configs = ['bn', 'de', 'en', 'es', 'fr', 'ja']  # Additional languages: 'ru', 'sw', 'te', 'th', 'zh'
+        eval_datasets = [load_dataset("juletxara/mgsm", config, split="train") for config in configs]
+        task = "llemma_math_reasoning"
+
+    elif "metamath" in decoder_name:
+        # MetaMath (Mathematical Reasoning)
+        # Training on MetaMathQA, MGSM, and MSVAMP.
+        train_datasets.append(load_dataset(config.get("metamath_train_dataset", "meta-math/MetaMathQA"), split="train"))
         train_datasets.append(load_dataset("juletxara/mgsm", split="train"))
         train_datasets.append(load_dataset("Mathoctopus/MSVAMP", split="train"))
-        eval_datasets.append(load_dataset(config.get("metamath_eval_dataset", "kaist-ai/mgsm"), split="train"))
+        # Evaluate on MGSM and MSVAMP.
         eval_datasets.append(load_dataset("juletxara/mgsm", split="train"))
         eval_datasets.append(load_dataset("Mathoctopus/MSVAMP", split="train"))
         task = "math_reasoning"
+
     elif "codellama" in decoder_name:
-        # Code completion: use HumanEval and HumanEval-MT datasets.
-        train_datasets.append(load_dataset(config.get("codellama_train_dataset", "kaist-ai/starcoder_python"), split="train"))
+        # Code Llama (Code Completion)
+        # Training on a Python-focused code dataset and on HumanEval/HumanEval-MT.
+        train_datasets.append(load_dataset(config.get("codellama_train_dataset", "bigcode/the-stack"), split="train"))
         train_datasets.append(load_dataset("openai/openai_humaneval", split="train"))
         mt_files = glob.glob("../humaneval/humaneval_*.json")
         for f in mt_files:
             train_datasets.append(load_dataset("json", data_files=f, split="train"))
-        eval_datasets.append(load_dataset(config.get("codellama_eval_dataset", "kaist-ai/humaneval"), split="train"))
-        eval_datasets.append(load_dataset("openai/openai_humaneval", split="train"))
+        # Evaluate on HumanEval (using the openai/humaneval dataset) plus HumanEval-MT JSON files.
+        eval_datasets.append(load_dataset(config.get("codellama_eval_dataset", "openai/openai_humaneval"), split="train"))
         for f in mt_files:
             eval_datasets.append(load_dataset("json", data_files=f, split="train"))
         task = "code_completion"
+
     elif "orca2" in decoder_name:
-        # Logical/commonsense reasoning: combine multiple datasets.
-        train_datasets.append(load_dataset(config.get("orca_train_dataset", "kaist-ai/openorca"), split="train"))
+        # Orca 2 (Logical/Commonsense Reasoning)
+        # Training on OpenOrca, XCOPA, BBH, and BBH-BN.
+        train_datasets.append(load_dataset(config.get("orca_train_dataset", "Open-Orca/OpenOrca"), split="train"))
         train_datasets.append(load_dataset("cambridgeltl/xcopa", split="train"))
         train_datasets.append(load_dataset("lukaemon/bbh", split="train"))
-        train_datasets.append(load_dataset(config.get("bbh_bn_train_dataset", "lukaemon/bbh_bn"), split="train"))
-        eval_datasets.append(load_dataset(config.get("orca_eval_dataset", "kaist-ai/bbh"), split="train"))
+        train_datasets.append(load_dataset("lukaemon/bbh_bn", split="train"))
+        # Evaluation on BBH (using lukaemon/bbh), XCOPA, and BBH-BN.
+        eval_datasets.append(load_dataset(config.get("orca_eval_dataset", "lukaemon/bbh"), split="train"))
         eval_datasets.append(load_dataset("cambridgeltl/xcopa", split="train"))
-        eval_datasets.append(load_dataset("lukaemon/bbh", split="train"))
-        eval_datasets.append(load_dataset(config.get("bbh_bn_eval_dataset", "lukaemon/bbh_bn"), split="train"))
+        eval_datasets.append(load_dataset("lukaemon/bbh_bn", split="train"))
         task = "logical_reasoning"
+
     else:
-        # Default datasets.
-        train_datasets.append(load_dataset(config.get("hf_train_dataset", "default/train"), split="train"))
-        eval_datasets.append(load_dataset(config.get("hf_eval_dataset", "default/eval"), split="train"))
-        task = "default"
+        raise ValueError(f"Unsupported decoder model: {decoder_name}")
+
 
     # Concatenate multiple datasets if necessary.
     train_dataset = concatenate_datasets(train_datasets) if len(train_datasets) > 1 else train_datasets[0]
@@ -143,25 +150,26 @@ def main():
             ds = ds.remove_columns(cols_to_remove)
 
     # Create data loaders.
-    train_loader = DataLoader(train_dataset,
-                              batch_size=config.get("train_batch_size", 8),
-                              shuffle=True,
-                              collate_fn=collate_fn)
-    eval_loader  = DataLoader(eval_dataset,
-                              batch_size=config.get("eval_batch_size", 8),
-                              shuffle=False,
-                              collate_fn=collate_fn)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config.get("train_batch_size", 8),
+        shuffle=True,
+        collate_fn=collate_fn
+    )
+    eval_loader = DataLoader(
+        eval_dataset,
+        batch_size=config.get("eval_batch_size", 8),
+        shuffle=False,
+        collate_fn=collate_fn
+    )
 
-    ###############################################
-    # 4. Instantiate the LangBridgeModular model.
-    # Pass in aggregator and alignment types via the config.
-    ###############################################
     model = LangBridgeModular(
         encoder_model=encoder_model,
         decoder_model=decoder_model,
         tokenizer=tokenizer,
+        use_paragraph_mode=config.get("use_paragraph_mode", True),  # Added
         aggregator_type=config.get("aggregator_type", "max_pool"),
-        alignment_type=config.get("alignment_type", "ffnwithaddedeos"),
+        alignment_type=config.get("alignment_type", "LinearWithAddedEos"),
         fine_tune_encoder=config.get("fine_tune_encoder", True),
         max_sentence_length=config.get("max_sentence_length", 32),
         prompt_length=config.get("prompt_length", 10)

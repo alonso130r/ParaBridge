@@ -13,7 +13,7 @@
   "num_epochs": 3,
   "checkpoint_dir": "checkpoints",
   "eval_output_path": "final_eval_metrics.json",
-
+  "use_paragraph_mode": true,
   "aggregator_type": "max_pool",
   "alignment_type": "LinearWithAddedEos"
 }
