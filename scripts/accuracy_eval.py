@@ -183,7 +183,13 @@ def main():
     system_prompt = config.get("system_prompt", None)
     decoder_name = config["decoder_model_name_or_path"].lower()
     
-    if "metamath" in decoder_name or "llemma" in decoder_name:
+    if "llemma" in decoder_name:
+        configs = ['bn', 'de', 'en', 'es', 'fr', 'ja', 'ru', 'sw', 'te', 'th', 'zh']
+        for config in configs:
+            dataset = load_dataset("juletxara/mgsm", config, split="train")
+            tasks.append(HFTask(dataset, f"MGSM_{config}", system_prompt=system_prompt))
+
+    if "metamath" in decoder_name:
         # Math reasoning tasks.
         mgsm_dataset = load_dataset("juletxara/mgsm", split="validation")
         msvamp_dataset = load_dataset("Mathoctopus/MSVAMP", split="validation")
